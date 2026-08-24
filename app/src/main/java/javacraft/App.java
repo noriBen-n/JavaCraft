@@ -1,6 +1,7 @@
 package javacraft;
 
 import org.joml.Matrix4f;
+import org.joml.Vector3f;
 
 import static org.lwjgl.opengl.GL11.*;
 
@@ -41,6 +42,7 @@ public class App {
     private Shader shader;
     private World world;
     private Cube grassCube; // GRASSブロック用のメッシュ。全GRASSブロックで使い回す。
+    private Player player;
 
     public App() {
         this.window = new Window(WIDTH, HEIGHT, "JavaCraft");
@@ -63,18 +65,24 @@ public class App {
         Matrix4f projection = new Matrix4f()
                 .perspective((float) Math.toRadians(60.0), (float) WIDTH / HEIGHT, 0.1f, 100.0f);
 
-        // 5x5の地面全体を見渡せるよう、少し上から見下ろす位置にカメラを置く
-        Matrix4f view = new Matrix4f()
-                .lookAt(6.0f, 6.0f, 8.0f,
-                        2.0f, 0.0f, 2.0f,
-                        0.0f, 1.0f, 0.0f);
+        // 地面(5x5)を見渡せる位置からスタートし、少し見下ろす角度にしておく
+        player = new Player(new Vector3f(2.0f, 3.0f, 10.0f));
+        player.getCamera().setPitch(-15f);
+
+        double lastTime = window.getTime();
 
         while (running && !window.shouldClose()) {
+            double currentTime = window.getTime();
+            float deltaTime = (float) (currentTime - lastTime);
+            lastTime = currentTime;
+
+            player.update(window, deltaTime);
+
             window.clear();
             glClear(GL_DEPTH_BUFFER_BIT);
 
             shader.bind();
-            renderWorld(projection, view);
+            renderWorld(projection, player.getCamera().getViewMatrix());
             shader.unbind();
 
             window.update();

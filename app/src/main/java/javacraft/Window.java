@@ -68,6 +68,16 @@ public class Window {
         return glfwWindowShouldClose(handle);
     }
 
+    /** 指定したキー(例: GLFW_KEY_W)が今押されているかどうか。 */
+    public boolean isKeyPressed(int keyCode) {
+        return glfwGetKey(handle, keyCode) == GLFW_PRESS;
+    }
+
+    /** アプリ起動からの経過秒数。フレームレートに依存しない移動量の計算に使う。 */
+    public double getTime() {
+        return glfwGetTime();
+    }
+
     /** 1フレーム分の描画準備として、前フレームの内容をクリアする。 */
     public void clear() {
         glClear(GL_COLOR_BUFFER_BIT);
