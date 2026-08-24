@@ -15,14 +15,34 @@ repositories {
     mavenCentral()
 }
 
+// LWJGLはOSごとに異なるネイティブライブラリ(C/C++実装部分)を必要とするため、
+// バージョンとOS向けの分類子(classifier)を変数として定義しておく。
+ext {
+    lwjglVersion = '3.3.4'
+    lwjglNatives = 'natives-windows'
+}
+
 dependencies {
     // Use JUnit Jupiter for testing.
     testImplementation libs.junit.jupiter
 
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
-    // This dependency is used by the application.
-    implementation libs.guava
+    // LWJGL: BOM(Bill of Materials)でバージョンを一括管理する
+    implementation platform("org.lwjgl:lwjgl-bom:$lwjglVersion")
+
+    // ウィンドウ/入力(GLFW)とOpenGLのAPI本体
+    implementation 'org.lwjgl:lwjgl'
+    implementation 'org.lwjgl:lwjgl-glfw'
+    implementation 'org.lwjgl:lwjgl-opengl'
+
+    // 上記に対応するWindows向けネイティブライブラリ(実行時にのみ必要)
+    runtimeOnly "org.lwjgl:lwjgl::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-glfw::$lwjglNatives"
+    runtimeOnly "org.lwjgl:lwjgl-opengl::$lwjglNatives"
+
+    // JOML: ベクトル・行列計算ライブラリ
+    implementation 'org.joml:joml:1.10.8'
 }
 
 // Apply a specific Java toolchain to ease working on different environments.
