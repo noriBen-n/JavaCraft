@@ -50,6 +50,7 @@ public class App {
 
     public void run() {
         window.init();
+        window.captureCursor();
         glEnable(GL_DEPTH_TEST);
 
         shader = new Shader(VERTEX_SHADER, FRAGMENT_SHADER);

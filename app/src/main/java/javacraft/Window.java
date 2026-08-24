@@ -2,6 +2,9 @@ package javacraft;
 
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
+import org.lwjgl.system.MemoryStack;
+
+import java.nio.DoubleBuffer;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -76,6 +79,21 @@ public class Window {
     /** アプリ起動からの経過秒数。フレームレートに依存しない移動量の計算に使う。 */
     public double getTime() {
         return glfwGetTime();
+    }
+
+    /** マウスカーソルをウィンドウ内に閉じ込め、非表示にする(FPS視点操作の定番設定)。 */
+    public void captureCursor() {
+        glfwSetInputMode(handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    }
+
+    /** 現在のマウスカーソル位置を {x, y} で返す。 */
+    public double[] getCursorPosition() {
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            DoubleBuffer xBuffer = stack.mallocDouble(1);
+            DoubleBuffer yBuffer = stack.mallocDouble(1);
+            glfwGetCursorPos(handle, xBuffer, yBuffer);
+            return new double[]{xBuffer.get(0), yBuffer.get(0)};
+        }
     }
 
     /** 1フレーム分の描画準備として、前フレームの内容をクリアする。 */
