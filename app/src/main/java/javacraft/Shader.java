@@ -1,5 +1,10 @@
 package javacraft;
 
+import org.joml.Matrix4f;
+import org.lwjgl.system.MemoryStack;
+
+import java.nio.FloatBuffer;
+
 import static org.lwjgl.opengl.GL20.*;
 
 /**
@@ -47,6 +52,19 @@ public class Shader {
 
     public void unbind() {
         glUseProgram(0);
+    }
+
+    /** GLSL側の `uniform mat4 名前` に、JOMLの4x4行列を1つ渡す。 */
+    public void setUniform(String name, Matrix4f matrix) {
+        int location = glGetUniformLocation(programId, name);
+
+        // JavaのMatrix4fオブジェクトを、GPUが読める生のfloat配列(16個)に変換して渡す。
+        // try-with-resourcesでスタックメモリを使い、渡し終えたらすぐ解放する。
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            FloatBuffer buffer = stack.mallocFloat(16);
+            matrix.get(buffer);
+            glUniformMatrix4fv(location, false, buffer);
+        }
     }
 
     public void destroy() {
