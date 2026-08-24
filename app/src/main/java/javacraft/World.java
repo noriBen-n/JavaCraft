@@ -27,4 +27,12 @@ public class World {
     public void setBlock(int x, int y, int z, BlockType type) {
         blocks[x][y][z] = type;
     }
+
+    /** 範囲外の座標はすべて「衝突しない(AIR扱い)」として安全に返す、当たり判定専用の問い合わせ。 */
+    public boolean isSolid(int x, int y, int z) {
+        if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
+            return false;
+        }
+        return getBlock(x, y, z).isSolid();
+    }
 }

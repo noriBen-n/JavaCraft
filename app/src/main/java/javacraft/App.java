@@ -66,9 +66,8 @@ public class App {
         Matrix4f projection = new Matrix4f()
                 .perspective((float) Math.toRadians(60.0), (float) WIDTH / HEIGHT, 0.1f, 100.0f);
 
-        // 地面(5x5)を見渡せる位置からスタートし、少し見下ろす角度にしておく
-        player = new Player(new Vector3f(2.0f, 3.0f, 10.0f));
-        player.getCamera().setPitch(-15f);
+        // 地面(5x5)の上、少し高い位置からスタートする。重力で落下して着地するのが見えるはず。
+        player = new Player(new Vector3f(2.0f, 5.0f, 2.0f));
 
         double lastTime = window.getTime();
 
@@ -77,7 +76,7 @@ public class App {
             float deltaTime = (float) (currentTime - lastTime);
             lastTime = currentTime;
 
-            player.update(window, deltaTime);
+            player.update(window, world, deltaTime);
 
             window.clear();
             glClear(GL_DEPTH_BUFFER_BIT);
