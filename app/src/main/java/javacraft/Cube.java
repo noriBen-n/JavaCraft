@@ -1,5 +1,6 @@
 package javacraft;
 
+import org.joml.Vector3f;
 import org.lwjgl.BufferUtils;
 
 import java.nio.FloatBuffer;
@@ -12,20 +13,20 @@ import static org.lwjgl.opengl.GL30.*;
 /**
  * 立方体1つ分の頂点データ(位置+色)をGPUに送り、描画するクラス。
  * 8頂点をインデックスバッファ(EBO)で使い回すことで、頂点データの重複を避ける。
+ * 色はBlockTypeから決まり、8頂点すべてに同じ色を割り当てる。
  */
 public class Cube {
 
-    // 各頂点: (x, y, z, r, g, b) の6個1組。立方体の8つの角に、区別しやすいよう色を割り当てる。
-    private static final float[] VERTICES = {
-            // 位置                色
-            -0.5f, -0.5f, -0.5f,  1f, 0f, 0f, // 0
-             0.5f, -0.5f, -0.5f,  0f, 1f, 0f, // 1
-             0.5f,  0.5f, -0.5f,  0f, 0f, 1f, // 2
-            -0.5f,  0.5f, -0.5f,  1f, 1f, 0f, // 3
-            -0.5f, -0.5f,  0.5f,  1f, 0f, 1f, // 4
-             0.5f, -0.5f,  0.5f,  0f, 1f, 1f, // 5
-             0.5f,  0.5f,  0.5f,  1f, 1f, 1f, // 6
-            -0.5f,  0.5f,  0.5f,  0f, 0f, 0f, // 7
+    // 立方体の8つの角の位置(x, y, z)。色は含まない。
+    private static final float[] POSITIONS = {
+            -0.5f, -0.5f, -0.5f, // 0
+             0.5f, -0.5f, -0.5f, // 1
+             0.5f,  0.5f, -0.5f, // 2
+            -0.5f,  0.5f, -0.5f, // 3
+            -0.5f, -0.5f,  0.5f, // 4
+             0.5f, -0.5f,  0.5f, // 5
+             0.5f,  0.5f,  0.5f, // 6
+            -0.5f,  0.5f,  0.5f, // 7
     };
 
     // 6面 x 2三角形 x 3頂点 = 36個。同じ頂点番号を複数の面で使い回している。
@@ -42,14 +43,16 @@ public class Cube {
     private final int vboId;
     private final int eboId;
 
-    public Cube() {
+    public Cube(BlockType blockType) {
         vaoId = glGenVertexArrays();
         glBindVertexArray(vaoId);
 
+        float[] vertexData = buildVertexData(blockType.getColor());
+
         vboId = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, vboId);
-        FloatBuffer vertexBuffer = BufferUtils.createFloatBuffer(VERTICES.length);
-        vertexBuffer.put(VERTICES).flip();
+        FloatBuffer vertexBuffer = BufferUtils.createFloatBuffer(vertexData.length);
+        vertexBuffer.put(vertexData).flip();
         glBufferData(GL_ARRAY_BUFFER, vertexBuffer, GL_STATIC_DRAW);
 
         // EBO(Element Buffer Object): 「どの頂点番号を、どの順で結んで三角形にするか」を持つバッファ
@@ -71,6 +74,22 @@ public class Cube {
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
+    }
+
+    /** POSITIONS(x,y,z)の各頂点に、同じ色(r,g,b)を1組にして展開する。 */
+    private static float[] buildVertexData(Vector3f color) {
+        int vertexCount = POSITIONS.length / 3;
+        float[] data = new float[vertexCount * 6];
+
+        for (int v = 0; v < vertexCount; v++) {
+            data[v * 6]     = POSITIONS[v * 3];
+            data[v * 6 + 1] = POSITIONS[v * 3 + 1];
+            data[v * 6 + 2] = POSITIONS[v * 3 + 2];
+            data[v * 6 + 3] = color.x;
+            data[v * 6 + 4] = color.y;
+            data[v * 6 + 5] = color.z;
+        }
+        return data;
     }
 
     public void render() {

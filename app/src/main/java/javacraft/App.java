@@ -50,7 +50,7 @@ public class App {
         glEnable(GL_DEPTH_TEST); // 奥行きを正しく判定するため、深度テストを有効化する
 
         shader = new Shader(VERTEX_SHADER, FRAGMENT_SHADER);
-        cube = new Cube();
+        cube = new Cube(BlockType.GRASS);
 
         // Projection行列: 遠近感(パースペクティブ)を決める。視野角・アスペクト比・近い/遠いクリップ面。
         Matrix4f projection = new Matrix4f()
