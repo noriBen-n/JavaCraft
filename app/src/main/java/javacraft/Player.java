@@ -36,12 +36,20 @@ public class Player {
     private boolean leftMouseWasPressed = false;
     private boolean rightMouseWasPressed = false;
 
+    // 毎フレーム計算する「今狙っているBlock」。クリック時の破壊/設置と、照準表示(ハイライト)の両方で使う。
+    private Optional<Raycaster.RaycastHit> currentTarget = Optional.empty();
+
     public Player(Vector3f startPosition) {
         this.camera = new Camera(startPosition);
     }
 
     public Camera getCamera() {
         return camera;
+    }
+
+    /** 現在照準が合っているBlock(無ければ空)。App側でハイライト表示するのに使う。 */
+    public Optional<Raycaster.RaycastHit> getCurrentTarget() {
+        return currentTarget;
     }
 
     /** 毎フレーム呼ぶ。deltaTimeにより、フレームレートが変わっても移動速度を一定に保つ。 */
@@ -90,8 +98,13 @@ public class Player {
         handleBlockInteraction(window, chunk);
     }
 
-    /** 左クリックでBlockを破壊、右クリックで設置する。押しっぱなしで連打しないよう、押した瞬間だけ反応する。 */
+    /**
+     * 毎フレーム、今狙っているBlockを更新する(照準表示のため)。
+     * その上で、左クリックで破壊、右クリックで設置する(押した瞬間だけ反応、押しっぱなし連打はしない)。
+     */
     private void handleBlockInteraction(Window window, Chunk chunk) {
+        currentTarget = raycaster.cast(chunk, camera.getPosition(), camera.getLookDirection(), REACH);
+
         boolean leftMousePressed = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT);
         boolean rightMousePressed = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_RIGHT);
 
@@ -100,22 +113,15 @@ public class Player {
         leftMouseWasPressed = leftMousePressed;
         rightMouseWasPressed = rightMousePressed;
 
-        if (!leftJustPressed && !rightJustPressed) {
-            return; // 何もクリックされていなければRaycastすら不要
-        }
-
-        Optional<Raycaster.RaycastHit> hit = raycaster.cast(
-                chunk, camera.getPosition(), camera.getLookDirection(), REACH);
-
-        if (hit.isEmpty()) {
+        if (currentTarget.isEmpty() || (!leftJustPressed && !rightJustPressed)) {
             return;
         }
 
         if (leftJustPressed) {
-            Vector3i b = hit.get().hitBlock();
+            Vector3i b = currentTarget.get().hitBlock();
             chunk.setBlock(b.x, b.y, b.z, BlockType.AIR); // 破壊 = AIRに置き換える
         } else {
-            Vector3i p = hit.get().placePosition();
+            Vector3i p = currentTarget.get().placePosition();
             if (chunk.inBounds(p.x, p.y, p.z)) {
                 chunk.setBlock(p.x, p.y, p.z, PLACE_BLOCK_TYPE);
             }

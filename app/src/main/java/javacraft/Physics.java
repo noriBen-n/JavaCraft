@@ -9,6 +9,7 @@ import org.joml.Vector3f;
 public class Physics {
 
     private static final float GRAVITY = -20.0f; // 1秒あたりの落下加速度(ワールド単位/秒^2)
+    private static final float TERMINAL_VELOCITY = -18.0f; // 落下速度の下限。長時間落下してもこれ以上速くしない。
     public static final float EYE_HEIGHT = 1.6f;  // 目線(Camera位置)は足元よりこれだけ高い
     private static final float PLAYER_HEIGHT = 1.8f; // 足元から頭までの高さ(水平衝突の判定範囲に使う)
 
@@ -19,17 +20,26 @@ public class Physics {
      * 重力を適用し、真下に固体Blockがあれば着地させる。position.y はこのメソッドが直接書き換える。
      */
     public VerticalMotion applyGravity(Chunk chunk, Vector3f position, float velocityY, float deltaTime) {
-        velocityY += GRAVITY * deltaTime;
+        velocityY = Math.max(velocityY + GRAVITY * deltaTime, TERMINAL_VELOCITY);
         float newY = position.y + velocityY * deltaTime;
 
-        int feetX = (int) Math.floor(position.x);
-        int feetZ = (int) Math.floor(position.z);
-        int feetY = (int) Math.floor(newY - EYE_HEIGHT);
+        int blockX = (int) Math.floor(position.x);
+        int blockZ = (int) Math.floor(position.z);
 
-        if (chunk.isSolid(feetX, feetY, feetZ)) {
-            // Blockの上面にちょうど乗る高さへ補正し、落下速度をリセットする
-            position.y = feetY + 1 + EYE_HEIGHT;
-            return new VerticalMotion(0f, true);
+        if (velocityY < 0) {
+            // 落下中: 足元にBlockがあれば、その上面に着地させる
+            int feetY = (int) Math.floor(newY - EYE_HEIGHT);
+            if (chunk.isSolid(blockX, feetY, blockZ)) {
+                position.y = feetY + 1 + EYE_HEIGHT;
+                return new VerticalMotion(0f, true);
+            }
+        } else if (velocityY > 0) {
+            // 上昇中(ジャンプ): 頭上にBlockがあれば、そこにぶつけて止める
+            int headY = (int) Math.floor(newY - EYE_HEIGHT + PLAYER_HEIGHT);
+            if (chunk.isSolid(blockX, headY, blockZ)) {
+                position.y = headY - PLAYER_HEIGHT + EYE_HEIGHT;
+                return new VerticalMotion(0f, false);
+            }
         }
 
         position.y = newY;

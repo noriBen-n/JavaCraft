@@ -9,6 +9,9 @@ public class App {
 
     private static final int WIDTH = 800;
     private static final int HEIGHT = 600;
+    // 1フレームで進める時間の上限。ChunkMesh再構築などで一瞬処理が重くなった直後、
+    // 次のフレームのdeltaTimeが跳ね上がって1フレームで壁を飛び越える(すり抜ける)のを防ぐ。
+    private static final float MAX_DELTA_TIME = 0.05f;
 
     private static final String VERTEX_SHADER = """
             #version 330 core
@@ -42,6 +45,8 @@ public class App {
     private Chunk chunk;
     private Player player;
     private ChunkMesh chunkMesh; // Chunk全体を1つにまとめたメッシュ。dirtyな時だけ作り直す。
+    private BlockOutline blockOutline; // 狙っているBlockの縁取り
+    private Crosshair crosshair; // 画面中央の照準
 
     public App() {
         this.window = new Window(WIDTH, HEIGHT, "JavaCraft");
@@ -53,6 +58,8 @@ public class App {
         glEnable(GL_DEPTH_TEST);
 
         shader = new Shader(VERTEX_SHADER, FRAGMENT_SHADER);
+        blockOutline = new BlockOutline();
+        crosshair = new Crosshair();
 
         chunk = new Chunk();
         new TerrainGenerator().generate(chunk);
@@ -67,7 +74,7 @@ public class App {
 
         while (running && !window.shouldClose()) {
             double currentTime = window.getTime();
-            float deltaTime = (float) (currentTime - lastTime);
+            float deltaTime = Math.min((float) (currentTime - lastTime), MAX_DELTA_TIME);
             lastTime = currentTime;
 
             player.update(window, chunk, deltaTime);
@@ -76,15 +83,34 @@ public class App {
             window.clear();
             glClear(GL_DEPTH_BUFFER_BIT);
 
+            Matrix4f viewProjection = new Matrix4f(projection).mul(player.getCamera().getViewMatrix());
+
             shader.bind();
-            shader.setUniform("uMvp", new Matrix4f(projection).mul(player.getCamera().getViewMatrix()));
+
+            shader.setUniform("uMvp", viewProjection);
             chunkMesh.render();
+
+            // 狙っているBlockがあれば、その座標に縁取りを表示する
+            player.getCurrentTarget().ifPresent(hit -> {
+                Vector3f pos = new Vector3f(hit.hitBlock().x, hit.hitBlock().y, hit.hitBlock().z);
+                shader.setUniform("uMvp", new Matrix4f(viewProjection).translate(pos));
+                blockOutline.render();
+            });
+
+            // 照準は3D空間の物ではないので、深度テストを切って常に手前に描画する
+            glDisable(GL_DEPTH_TEST);
+            shader.setUniform("uMvp", new Matrix4f()); // 単位行列 = 何も変換しない(画面中央に固定)
+            crosshair.render();
+            glEnable(GL_DEPTH_TEST);
+
             shader.unbind();
 
             window.update();
         }
 
         chunkMesh.destroy();
+        blockOutline.destroy();
+        crosshair.destroy();
         shader.destroy();
         window.destroy();
     }

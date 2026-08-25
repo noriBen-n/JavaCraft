@@ -18,16 +18,19 @@ import static org.lwjgl.opengl.GL30.*;
  */
 public class ChunkMesh {
 
-    // 立方体の8頂点(ローカル座標、中心が原点)。旧Cubeクラスと同じ形状。
+    // 立方体の8頂点(ローカル座標)。
+    // Physics/Raycasterは「座標(x,y,z)のBlockは (x,y,z)〜(x+1,y+1,z+1) の範囲を占める」という
+    // 前提でfloor()計算をしているので、描画側もそれに合わせて0〜1の範囲にする
+    // (以前は中心±0.5だったため、見た目と当たり判定が0.5ズレるバグがあった)。
     private static final Vector3f[] CORNERS = {
-            new Vector3f(-0.5f, -0.5f, -0.5f), // 0
-            new Vector3f(0.5f, -0.5f, -0.5f),  // 1
-            new Vector3f(0.5f, 0.5f, -0.5f),   // 2
-            new Vector3f(-0.5f, 0.5f, -0.5f),  // 3
-            new Vector3f(-0.5f, -0.5f, 0.5f),  // 4
-            new Vector3f(0.5f, -0.5f, 0.5f),   // 5
-            new Vector3f(0.5f, 0.5f, 0.5f),    // 6
-            new Vector3f(-0.5f, 0.5f, 0.5f),   // 7
+            new Vector3f(0f, 0f, 0f), // 0
+            new Vector3f(1f, 0f, 0f), // 1
+            new Vector3f(1f, 1f, 0f), // 2
+            new Vector3f(0f, 1f, 0f), // 3
+            new Vector3f(0f, 0f, 1f), // 4
+            new Vector3f(1f, 0f, 1f), // 5
+            new Vector3f(1f, 1f, 1f), // 6
+            new Vector3f(0f, 1f, 1f), // 7
     };
 
     // 面ごとに「隣を確認する方向(dx,dy,dz)」と「使う4頂点」を定義する
