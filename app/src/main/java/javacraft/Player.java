@@ -1,6 +1,9 @@
 package javacraft;
 
 import org.joml.Vector3f;
+import org.joml.Vector3i;
+
+import java.util.Optional;
 
 import static org.lwjgl.glfw.GLFW.*;
 
@@ -14,9 +17,12 @@ public class Player {
     private static final float MOUSE_SENSITIVITY = 0.1f; // マウス1ピクセル移動あたりの角度(度)
     private static final float MAX_PITCH = 89f; // 真上・真下ぎりぎりまでで止め、視点反転を防ぐ
     private static final float JUMP_VELOCITY = 8.0f; // ジャンプ開始時の上向き速度
+    private static final float REACH = 5.0f; // ブロック破壊/設置が届く最大距離
+    private static final BlockType PLACE_BLOCK_TYPE = BlockType.STONE; // 今はインベントリが無いので固定
 
     private final Camera camera;
     private final Physics physics = new Physics();
+    private final Raycaster raycaster = new Raycaster();
 
     // 前フレームのマウス座標。差分(移動量)を求めるために保持する。
     private double lastMouseX;
@@ -25,6 +31,10 @@ public class Player {
 
     private float verticalVelocity = 0f;
     private boolean grounded = false;
+
+    // 「今押された瞬間」だけを検知するために、前フレームの押下状態を覚えておく
+    private boolean leftMouseWasPressed = false;
+    private boolean rightMouseWasPressed = false;
 
     public Player(Vector3f startPosition) {
         this.camera = new Camera(startPosition);
@@ -66,6 +76,40 @@ public class Player {
         Physics.VerticalMotion motion = physics.applyGravity(world, position, verticalVelocity, deltaTime);
         verticalVelocity = motion.velocityY();
         grounded = motion.grounded();
+
+        handleBlockInteraction(window, world);
+    }
+
+    /** 左クリックでBlockを破壊、右クリックで設置する。押しっぱなしで連打しないよう、押した瞬間だけ反応する。 */
+    private void handleBlockInteraction(Window window, World world) {
+        boolean leftMousePressed = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT);
+        boolean rightMousePressed = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_RIGHT);
+
+        boolean leftJustPressed = leftMousePressed && !leftMouseWasPressed;
+        boolean rightJustPressed = rightMousePressed && !rightMouseWasPressed;
+        leftMouseWasPressed = leftMousePressed;
+        rightMouseWasPressed = rightMousePressed;
+
+        if (!leftJustPressed && !rightJustPressed) {
+            return; // 何もクリックされていなければRaycastすら不要
+        }
+
+        Optional<Raycaster.RaycastHit> hit = raycaster.cast(
+                world, camera.getPosition(), camera.getLookDirection(), REACH);
+
+        if (hit.isEmpty()) {
+            return;
+        }
+
+        if (leftJustPressed) {
+            Vector3i b = hit.get().hitBlock();
+            world.setBlock(b.x, b.y, b.z, BlockType.AIR); // 破壊 = AIRに置き換える
+        } else {
+            Vector3i p = hit.get().placePosition();
+            if (world.inBounds(p.x, p.y, p.z)) {
+                world.setBlock(p.x, p.y, p.z, PLACE_BLOCK_TYPE);
+            }
+        }
     }
 
     /** マウスの移動量から、カメラのyaw(左右)とpitch(上下)を更新する。 */

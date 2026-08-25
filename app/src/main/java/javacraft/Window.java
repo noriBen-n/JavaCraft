@@ -76,6 +76,11 @@ public class Window {
         return glfwGetKey(handle, keyCode) == GLFW_PRESS;
     }
 
+    /** 指定したマウスボタン(例: GLFW_MOUSE_BUTTON_LEFT)が今押されているかどうか。 */
+    public boolean isMouseButtonPressed(int button) {
+        return glfwGetMouseButton(handle, button) == GLFW_PRESS;
+    }
+
     /** アプリ起動からの経過秒数。フレームレートに依存しない移動量の計算に使う。 */
     public double getTime() {
         return glfwGetTime();

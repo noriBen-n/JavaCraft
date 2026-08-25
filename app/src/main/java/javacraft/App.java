@@ -3,6 +3,9 @@ package javacraft;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
+import java.util.EnumMap;
+import java.util.Map;
+
 import static org.lwjgl.opengl.GL11.*;
 
 public class App {
@@ -41,8 +44,10 @@ public class App {
 
     private Shader shader;
     private World world;
-    private Cube grassCube; // GRASSブロック用のメッシュ。全GRASSブロックで使い回す。
     private Player player;
+
+    // BlockTypeごとに1つのメッシュを使い回す。EnumMap: keyがenumの時に配列並みに高速な専用Map実装。
+    private final Map<BlockType, Cube> cubesByType = new EnumMap<>(BlockType.class);
 
     public App() {
         this.window = new Window(WIDTH, HEIGHT, "JavaCraft");
@@ -54,7 +59,9 @@ public class App {
         glEnable(GL_DEPTH_TEST);
 
         shader = new Shader(VERTEX_SHADER, FRAGMENT_SHADER);
-        grassCube = new Cube(BlockType.GRASS);
+        cubesByType.put(BlockType.GRASS, new Cube(BlockType.GRASS));
+        cubesByType.put(BlockType.DIRT, new Cube(BlockType.DIRT));
+        cubesByType.put(BlockType.STONE, new Cube(BlockType.STONE));
 
         world = new World();
         for (int x = 0; x < GROUND_SIZE; x++) {
@@ -88,7 +95,7 @@ public class App {
             window.update();
         }
 
-        grassCube.destroy();
+        cubesByType.values().forEach(Cube::destroy);
         shader.destroy();
         window.destroy();
     }
@@ -107,7 +114,7 @@ public class App {
                     Matrix4f mvp = new Matrix4f(projection).mul(view).mul(model);
 
                     shader.setUniform("uMvp", mvp);
-                    grassCube.render();
+                    cubesByType.get(type).render();
                 }
             }
         }

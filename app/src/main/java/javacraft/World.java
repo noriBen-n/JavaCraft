@@ -30,9 +30,14 @@ public class World {
 
     /** 範囲外の座標はすべて「衝突しない(AIR扱い)」として安全に返す、当たり判定専用の問い合わせ。 */
     public boolean isSolid(int x, int y, int z) {
-        if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || z < 0 || z >= SIZE) {
+        if (!inBounds(x, y, z)) {
             return false;
         }
         return getBlock(x, y, z).isSolid();
+    }
+
+    /** この座標がWorldの範囲内かどうか。範囲外に破壊/設置しようとする操作を弾くのに使う。 */
+    public boolean inBounds(int x, int y, int z) {
+        return x >= 0 && x < SIZE && y >= 0 && y < SIZE && z >= 0 && z < SIZE;
     }
 }

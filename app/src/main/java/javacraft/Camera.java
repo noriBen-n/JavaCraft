@@ -51,8 +51,8 @@ public class Camera {
         return getForward().cross(new Vector3f(0f, 1f, 0f)).normalize();
     }
 
-    /** マウス視点(上下左右を見回す)を含めた、実際に見ている方向。View行列の計算に使う。 */
-    private Vector3f getLookDirection() {
+    /** マウス視点(上下左右を見回す)を含めた、実際に見ている方向。Raycastの照準方向にも使う。 */
+    public Vector3f getLookDirection() {
         float yawRad = (float) Math.toRadians(yaw);
         float pitchRad = (float) Math.toRadians(pitch);
         return new Vector3f(
