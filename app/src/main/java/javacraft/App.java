@@ -9,7 +9,6 @@ public class App {
 
     private static final int WIDTH = 800;
     private static final int HEIGHT = 600;
-    private static final int GROUND_SIZE = 5; // 5x5マスの地面をとりあえず作る
 
     private static final String VERTEX_SHADER = """
             #version 330 core
@@ -56,17 +55,13 @@ public class App {
         shader = new Shader(VERTEX_SHADER, FRAGMENT_SHADER);
 
         chunk = new Chunk();
-        for (int x = 0; x < GROUND_SIZE; x++) {
-            for (int z = 0; z < GROUND_SIZE; z++) {
-                chunk.setBlock(x, 0, z, BlockType.GRASS);
-            }
-        }
+        new TerrainGenerator().generate(chunk);
 
         Matrix4f projection = new Matrix4f()
                 .perspective((float) Math.toRadians(60.0), (float) WIDTH / HEIGHT, 0.1f, 100.0f);
 
-        // 地面(5x5)の上、少し高い位置からスタートする。重力で落下して着地するのが見えるはず。
-        player = new Player(new Vector3f(2.0f, 5.0f, 2.0f));
+        // 地形の最高点より確実に高い位置からスタートし、重力で落下して着地するのが見えるようにする。
+        player = new Player(new Vector3f(8.0f, 15.0f, 8.0f));
 
         double lastTime = window.getTime();
 

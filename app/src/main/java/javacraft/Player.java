@@ -54,18 +54,28 @@ public class Player {
 
         float distance = MOVE_SPEED * deltaTime;
 
+        // まず「どちらへ動きたいか」を1つのベクトルにまとめる(斜め移動でも速度が変わらないようにするのは将来の課題)
+        float dx = 0f;
+        float dz = 0f;
         if (window.isKeyPressed(GLFW_KEY_W)) {
-            position.add(forward.x * distance, 0f, forward.z * distance);
+            dx += forward.x * distance;
+            dz += forward.z * distance;
         }
         if (window.isKeyPressed(GLFW_KEY_S)) {
-            position.add(-forward.x * distance, 0f, -forward.z * distance);
+            dx -= forward.x * distance;
+            dz -= forward.z * distance;
         }
         if (window.isKeyPressed(GLFW_KEY_A)) {
-            position.add(-right.x * distance, 0f, -right.z * distance);
+            dx -= right.x * distance;
+            dz -= right.z * distance;
         }
         if (window.isKeyPressed(GLFW_KEY_D)) {
-            position.add(right.x * distance, 0f, right.z * distance);
+            dx += right.x * distance;
+            dz += right.z * distance;
         }
+
+        // 実際に動けるかどうか(壁に当たらないか)の判定はPhysicsに任せる
+        physics.moveHorizontal(chunk, position, dx, dz);
 
         if (grounded && window.isKeyPressed(GLFW_KEY_SPACE)) {
             verticalVelocity = JUMP_VELOCITY;
