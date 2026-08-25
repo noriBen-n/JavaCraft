@@ -45,7 +45,7 @@ public class Player {
     }
 
     /** 毎フレーム呼ぶ。deltaTimeにより、フレームレートが変わっても移動速度を一定に保つ。 */
-    public void update(Window window, World world, float deltaTime) {
+    public void update(Window window, Chunk chunk, float deltaTime) {
         updateLook(window);
 
         Vector3f forward = camera.getForward();
@@ -73,15 +73,15 @@ public class Player {
         }
 
         // 「何がどう衝突したか」の計算はPhysicsに任せ、その結果だけを自分の状態に反映する
-        Physics.VerticalMotion motion = physics.applyGravity(world, position, verticalVelocity, deltaTime);
+        Physics.VerticalMotion motion = physics.applyGravity(chunk, position, verticalVelocity, deltaTime);
         verticalVelocity = motion.velocityY();
         grounded = motion.grounded();
 
-        handleBlockInteraction(window, world);
+        handleBlockInteraction(window, chunk);
     }
 
     /** 左クリックでBlockを破壊、右クリックで設置する。押しっぱなしで連打しないよう、押した瞬間だけ反応する。 */
-    private void handleBlockInteraction(Window window, World world) {
+    private void handleBlockInteraction(Window window, Chunk chunk) {
         boolean leftMousePressed = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT);
         boolean rightMousePressed = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_RIGHT);
 
@@ -95,7 +95,7 @@ public class Player {
         }
 
         Optional<Raycaster.RaycastHit> hit = raycaster.cast(
-                world, camera.getPosition(), camera.getLookDirection(), REACH);
+                chunk, camera.getPosition(), camera.getLookDirection(), REACH);
 
         if (hit.isEmpty()) {
             return;
@@ -103,11 +103,11 @@ public class Player {
 
         if (leftJustPressed) {
             Vector3i b = hit.get().hitBlock();
-            world.setBlock(b.x, b.y, b.z, BlockType.AIR); // 破壊 = AIRに置き換える
+            chunk.setBlock(b.x, b.y, b.z, BlockType.AIR); // 破壊 = AIRに置き換える
         } else {
             Vector3i p = hit.get().placePosition();
-            if (world.inBounds(p.x, p.y, p.z)) {
-                world.setBlock(p.x, p.y, p.z, PLACE_BLOCK_TYPE);
+            if (chunk.inBounds(p.x, p.y, p.z)) {
+                chunk.setBlock(p.x, p.y, p.z, PLACE_BLOCK_TYPE);
             }
         }
     }

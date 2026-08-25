@@ -3,9 +3,6 @@ package javacraft;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
-import java.util.EnumMap;
-import java.util.Map;
-
 import static org.lwjgl.opengl.GL11.*;
 
 public class App {
@@ -43,11 +40,9 @@ public class App {
     private boolean running = true;
 
     private Shader shader;
-    private World world;
+    private Chunk chunk;
     private Player player;
-
-    // BlockTypeごとに1つのメッシュを使い回す。EnumMap: keyがenumの時に配列並みに高速な専用Map実装。
-    private final Map<BlockType, Cube> cubesByType = new EnumMap<>(BlockType.class);
+    private ChunkMesh chunkMesh; // Chunk全体を1つにまとめたメッシュ。dirtyな時だけ作り直す。
 
     public App() {
         this.window = new Window(WIDTH, HEIGHT, "JavaCraft");
@@ -59,14 +54,11 @@ public class App {
         glEnable(GL_DEPTH_TEST);
 
         shader = new Shader(VERTEX_SHADER, FRAGMENT_SHADER);
-        cubesByType.put(BlockType.GRASS, new Cube(BlockType.GRASS));
-        cubesByType.put(BlockType.DIRT, new Cube(BlockType.DIRT));
-        cubesByType.put(BlockType.STONE, new Cube(BlockType.STONE));
 
-        world = new World();
+        chunk = new Chunk();
         for (int x = 0; x < GROUND_SIZE; x++) {
             for (int z = 0; z < GROUND_SIZE; z++) {
-                world.setBlock(x, 0, z, BlockType.GRASS);
+                chunk.setBlock(x, 0, z, BlockType.GRASS);
             }
         }
 
@@ -83,41 +75,35 @@ public class App {
             float deltaTime = (float) (currentTime - lastTime);
             lastTime = currentTime;
 
-            player.update(window, world, deltaTime);
+            player.update(window, chunk, deltaTime);
+            rebuildMeshIfDirty();
 
             window.clear();
             glClear(GL_DEPTH_BUFFER_BIT);
 
             shader.bind();
-            renderWorld(projection, player.getCamera().getViewMatrix());
+            shader.setUniform("uMvp", new Matrix4f(projection).mul(player.getCamera().getViewMatrix()));
+            chunkMesh.render();
             shader.unbind();
 
             window.update();
         }
 
-        cubesByType.values().forEach(Cube::destroy);
+        chunkMesh.destroy();
         shader.destroy();
         window.destroy();
     }
 
-    private void renderWorld(Matrix4f projection, Matrix4f view) {
-        for (int x = 0; x < World.SIZE; x++) {
-            for (int y = 0; y < World.SIZE; y++) {
-                for (int z = 0; z < World.SIZE; z++) {
-                    BlockType type = world.getBlock(x, y, z);
-                    if (type == BlockType.AIR) {
-                        continue; // 空気ブロックは描画しない
-                    }
-
-                    // Model行列: このBlockの座標(x, y, z)へ平行移動するだけ
-                    Matrix4f model = new Matrix4f().translate(x, y, z);
-                    Matrix4f mvp = new Matrix4f(projection).mul(view).mul(model);
-
-                    shader.setUniform("uMvp", mvp);
-                    cubesByType.get(type).render();
-                }
-            }
+    /** Blockが変更された時だけメッシュを再構築する。変更が無ければ何もしない(=軽い)。 */
+    private void rebuildMeshIfDirty() {
+        if (!chunk.isDirty()) {
+            return;
         }
+        if (chunkMesh != null) {
+            chunkMesh.destroy(); // 古いGPUリソースを先に解放してから作り直す
+        }
+        chunkMesh = new ChunkMesh(chunk);
+        chunk.clearDirty();
     }
 
     public static void main(String[] args) {

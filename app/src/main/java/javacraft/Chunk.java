@@ -2,15 +2,20 @@ package javacraft;
 
 /**
  * 固定サイズ(16x16x16)のブロック配置を保持する。
- * 将来のChunkシステムでは、この構造がそのまま1つのChunkの中身になる。
+ * 今はWorld全体がこのChunk1つだけだが、将来は複数のChunkをMapで管理して
+ * 無限に広いWorldへ拡張できる(そのときもこのクラス自体はほぼ変える必要がない)。
  */
-public class World {
+public class Chunk {
 
     public static final int SIZE = 16;
 
     private final BlockType[][][] blocks = new BlockType[SIZE][SIZE][SIZE];
 
-    public World() {
+    // Block配置が変わったかどうか。trueの間はChunkMeshの再構築が必要、という合図に使う。
+    // 初期状態もtrue: まだ一度もメッシュを作っていないので「作る必要がある」ため。
+    private boolean dirty = true;
+
+    public Chunk() {
         for (int x = 0; x < SIZE; x++) {
             for (int y = 0; y < SIZE; y++) {
                 for (int z = 0; z < SIZE; z++) {
@@ -26,6 +31,17 @@ public class World {
 
     public void setBlock(int x, int y, int z, BlockType type) {
         blocks[x][y][z] = type;
+        dirty = true;
+    }
+
+    /** ChunkMeshの再構築が必要かどうか。 */
+    public boolean isDirty() {
+        return dirty;
+    }
+
+    /** メッシュを再構築し終えたら呼ぶ。次にsetBlockが呼ばれるまでは再構築不要になる。 */
+    public void clearDirty() {
+        dirty = false;
     }
 
     /** 範囲外の座標はすべて「衝突しない(AIR扱い)」として安全に返す、当たり判定専用の問い合わせ。 */

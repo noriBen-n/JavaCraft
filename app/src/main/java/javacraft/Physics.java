@@ -3,7 +3,7 @@ package javacraft;
 import org.joml.Vector3f;
 
 /**
- * 重力・地面との衝突など、Worldの形状に基づく物理計算を担当する。
+ * 重力・地面との衝突など、Chunkの形状に基づく物理計算を担当する。
  * Player自身はBlockの配列を直接見ず、この計算結果(VerticalMotion)だけを受け取る。
  */
 public class Physics {
@@ -17,7 +17,7 @@ public class Physics {
     /**
      * 重力を適用し、真下に固体Blockがあれば着地させる。position.y はこのメソッドが直接書き換える。
      */
-    public VerticalMotion applyGravity(World world, Vector3f position, float velocityY, float deltaTime) {
+    public VerticalMotion applyGravity(Chunk chunk, Vector3f position, float velocityY, float deltaTime) {
         velocityY += GRAVITY * deltaTime;
         float newY = position.y + velocityY * deltaTime;
 
@@ -25,7 +25,7 @@ public class Physics {
         int feetZ = (int) Math.floor(position.z);
         int feetY = (int) Math.floor(newY - EYE_HEIGHT);
 
-        if (world.isSolid(feetX, feetY, feetZ)) {
+        if (chunk.isSolid(feetX, feetY, feetZ)) {
             // Blockの上面にちょうど乗る高さへ補正し、落下速度をリセットする
             position.y = feetY + 1 + EYE_HEIGHT;
             return new VerticalMotion(0f, true);
